@@ -22,7 +22,19 @@ function compile()
 
     # 2. Kernel Configuration
     make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
-    
+    # --- EMERGENCY TOUCHSCREEN FIRMWARE FIX ---
+# Create the directory where the compiler is looking
+mkdir -p include/firmware
+
+# Copy the file from driver source to the expected location
+cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
+
+# Also copy to the 'out' directory for double safety
+mkdir -p out/include/firmware
+cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i out/include/firmware/
+
+echo "Success: Firmware files linked and ready for compilation."
+
     # Virtualization / KVM Support
     {
         echo "CONFIG_KVM=y"
