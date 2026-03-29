@@ -17,26 +17,25 @@ fi
 gcc32bin=gcc32/bin/arm-linux-androideabi-as
 if ! [ -a $gcc32bin ]; then git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 fi
-rm -rf AnyKernel
-# --- START OF TOUCHSCREEN FIRMWARE FIX ---
+rm -rf Ankernel
+# --- START OF KERNEL SCHED FAIR FIX ---
 
-# Create firmware directories in both root and out folder
-# This is necessary because 'O=out' redirects header searches
-mkdir -p include/firmware
-mkdir -p out/include/firmware
+# 1. Fix extraneous ')' at line 9420
+# We are removing the extra ')' before the ';'
+sed -i '9420s/);/;/g' kernel/sched/fair.c
 
-# Copy the required firmware file to both locations to ensure the compiler finds it
-cp -f drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
-cp -f drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i out/include/firmware/
+# 2. Fix messy block comments at line 11214
+# This replaces the double comment '/* /*' with a single one
+sed -i '11214s/\/\* \/\* mark_reserved/\/\* mark_reserved/g' kernel/sched/fair.c
+sed -i '11214s/); \*\/ \*\//); \*\//g' kernel/sched/fair.c
 
-# Optional: Copy all .i files to prevent similar errors with other panels
-# cp -rf drivers/input/touchscreen/ft8756_spi/include/firmware/*.i include/firmware/
-# cp -rf drivers/input/touchscreen/ft8756_spi/include/firmware/*.i out/include/firmware/
+# 3. Ensure the bracket is closed properly if the comment fix broke the block
+# (This is a safety measure for the "expected expression" error at 11215)
+sed -i '11215s/^}/}/' kernel/sched/fair.c
 
-echo "Success: Touchscreen firmware paths fixed."
+echo "Success: kernel/sched/fair.c has been patched."
 
-# --- END OF TOUCHSCREEN FIRMWARE FIX ---
-
+# --- END OF KERNEL SCHED FAIR FIX ---
 
 make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
 echo "CONFIG_KVM=y" >> out/.config
