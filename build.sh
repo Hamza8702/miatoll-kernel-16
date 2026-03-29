@@ -18,6 +18,32 @@ gcc32bin=gcc32/bin/arm-linux-androideabi-as
 if ! [ -a $gcc32bin ]; then git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 fi
 rm -rf Ankernel
+# --- START OF KERNEL FIXES (FIRMWARE & SCHEDULER) ---
+
+# 1. Touchscreen Firmware Fix (Using Symbolic Links)
+KERNEL_ROOT=$(pwd)
+FW_SOURCE_DIR="$KERNEL_ROOT/drivers/input/touchscreen/ft8756_spi/include/firmware"
+FW_TARGET_DIR="$KERNEL_ROOT/include/firmware"
+FW_OUT_TARGET_DIR="$KERNEL_ROOT/out/include/firmware"
+
+mkdir -p "$KERNEL_ROOT/include"
+mkdir -p "$KERNEL_ROOT/out/include"
+rm -rf "$FW_TARGET_DIR" "$FW_OUT_TARGET_DIR"
+ln -sf "$FW_SOURCE_DIR" "$FW_TARGET_DIR"
+ln -sf "$FW_SOURCE_DIR" "$FW_OUT_TARGET_DIR"
+
+# 2. Scheduler Fix (Fixing fair.c errors at lines 9420 and 11214)
+# Fix extraneous ')' at line 9420
+sed -i 's/cpumask_bits(&p->cpus_allowed)\[0\]);/cpumask_bits(\&p->cpus_allowed)[0];/g' kernel/sched/fair.c
+
+# Fix double comments /* /* at line 11214
+sed -i 's/\/\* \/\* mark_reserved/\/\* mark_reserved/g' kernel/sched/fair.c
+sed -i 's/this_cpu); \*\/ \*\//this_cpu); \*\//g' kernel/sched/fair.c
+
+echo "Success: Firmware linked and fair.c patched."
+
+# --- END OF KERNEL FIXES ---
+
 # --- START OF TOUCHSCREEN FIRMWARE FIX ---
 
 # Use absolute paths to avoid directory confusion
