@@ -18,24 +18,36 @@ gcc32bin=gcc32/bin/arm-linux-androideabi-as
 if ! [ -a $gcc32bin ]; then git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 fi
 rm -rf Ankernel
-# --- START OF KERNEL SCHED FAIR FIX ---
+# --- START OF TOUCHSCREEN FIRMWARE FIX ---
 
-# 1. Fix extraneous ')' at line 9420
-# We are removing the extra ')' before the ';'
-sed -i '9420s/);/;/g' kernel/sched/fair.c
+# Use absolute paths to avoid directory confusion
+KERNEL_ROOT=$(pwd)
+FW_SOURCE_DIR="$KERNEL_ROOT/drivers/input/touchscreen/ft8756_spi/include/firmware"
+FW_TARGET_DIR="$KERNEL_ROOT/include/firmware"
+FW_OUT_TARGET_DIR="$KERNEL_ROOT/out/include/firmware"
 
-# 2. Fix messy block comments at line 11214
-# This replaces the double comment '/* /*' with a single one
-sed -i '11214s/\/\* \/\* mark_reserved/\/\* mark_reserved/g' kernel/sched/fair.c
-sed -i '11214s/); \*\/ \*\//); \*\//g' kernel/sched/fair.c
+# Create parent include directories
+mkdir -p "$KERNEL_ROOT/include"
+mkdir -p "$KERNEL_ROOT/out/include"
 
-# 3. Ensure the bracket is closed properly if the comment fix broke the block
-# (This is a safety measure for the "expected expression" error at 11215)
-sed -i '11215s/^}/}/' kernel/sched/fair.c
+# Remove any existing failed copies or links
+rm -rf "$FW_TARGET_DIR"
+rm -rf "$FW_OUT_TARGET_DIR"
 
-echo "Success: kernel/sched/fair.c has been patched."
+# Create symbolic links (ln -s)
+# This points the compiler directly to the source file location
+ln -sf "$FW_SOURCE_DIR" "$FW_TARGET_DIR"
+ln -sf "$FW_SOURCE_DIR" "$FW_OUT_TARGET_DIR"
 
-# --- END OF KERNEL SCHED FAIR FIX ---
+# Debug: Check if the link is valid in the logs
+if [ -L "$FW_TARGET_DIR" ]; then
+    echo "Success: Symbolic link for firmware created."
+    ls -l "$FW_TARGET_DIR/fw_huaxing_v0e.i"
+else
+    echo "Error: Failed to create symbolic link."
+fi
+
+# --- END OF TOUCHSCREEN FIRMWARE FIX ---
 
 make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
 echo "CONFIG_KVM=y" >> out/.config
