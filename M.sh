@@ -26,6 +26,15 @@ function compile()
     fi
 
     # Initialize Kernel Configuration
+    # --- FORCE PATCHING SCHEDULER (fair.c) ---
+# 9420. satırdaki hatalı parantezi kaldır
+sed -i '9420s/cpumask_bits(&p->cpus_allowed)\[0\]);/cpumask_bits(\&p->cpus_allowed)[0];/g' kernel/sched/fair.c
+
+# 11214. satırdaki iç içe geçmiş yorumları (/* /*) temizle
+sed -i '11214s/\/\* \/\* mark_reserved(this_cpu); \*\/ \*\//\/\* mark_reserved(this_cpu); \*\//g' kernel/sched/fair.c
+
+echo "Success: Scheduler forced patches applied."
+
     make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
     
     # Inject Virtualization Support (KVM)
