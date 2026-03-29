@@ -18,27 +18,25 @@ gcc32bin=gcc32/bin/arm-linux-androideabi-as
 if ! [ -a $gcc32bin ]; then git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 fi
 rm -rf AnyKernel
-# --- START OF AUTO-FIX SECTION ---
+# --- START OF TOUCHSCREEN FIRMWARE FIX ---
 
-# Fix extraneous ')' at line 9420 in fair.c
-sed -i 's/cpumask_bits(&p->cpus_allowed)\[0\]);/cpumask_bits(\&p->cpus_allowed)[0];/g' kernel/sched/fair.c
-
-# Fix double block comments /* /* at line 11214 in fair.c
-sed -i 's/\/\* \/\* mark_reserved/\/\* mark_reserved/g' kernel/sched/fair.c
-sed -i 's/this_cpu); \*\/ \*\//this_cpu); \*\//g' kernel/sched/fair.c
-
-# Define FULL_THROTTLE_BOOST if missing to prevent "undeclared" error
-sed -i '30i #ifndef FULL_THROTTLE_BOOST\n#define FULL_THROTTLE_BOOST 2\n#endif' kernel/sched/fair.c
-
-# Add KVM support flags to out/.config
-# Create the missing directory
+# Create firmware directories in both root and out folder
+# This is necessary because 'O=out' redirects header searches
 mkdir -p include/firmware
+mkdir -p out/include/firmware
 
-# Copy the specific firmware file to the expected location
-cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
+# Copy the required firmware file to both locations to ensure the compiler finds it
+cp -f drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
+cp -f drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i out/include/firmware/
 
-# Alternatively, copy all .i files to be safe
-# cp drivers/input/touchscreen/ft8756_spi/include/firmware/*.i include/firmware/
+# Optional: Copy all .i files to prevent similar errors with other panels
+# cp -rf drivers/input/touchscreen/ft8756_spi/include/firmware/*.i include/firmware/
+# cp -rf drivers/input/touchscreen/ft8756_spi/include/firmware/*.i out/include/firmware/
+
+echo "Success: Touchscreen firmware paths fixed."
+
+# --- END OF TOUCHSCREEN FIRMWARE FIX ---
+
 
 make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
 echo "CONFIG_KVM=y" >> out/.config
