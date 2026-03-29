@@ -31,6 +31,15 @@ sed -i 's/this_cpu); \*\/ \*\//this_cpu); \*\//g' kernel/sched/fair.c
 sed -i '30i #ifndef FULL_THROTTLE_BOOST\n#define FULL_THROTTLE_BOOST 2\n#endif' kernel/sched/fair.c
 
 # Add KVM support flags to out/.config
+# Create the missing directory
+mkdir -p include/firmware
+
+# Copy the specific firmware file to the expected location
+cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
+
+# Alternatively, copy all .i files to be safe
+# cp drivers/input/touchscreen/ft8756_spi/include/firmware/*.i include/firmware/
+
 make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
 echo "CONFIG_KVM=y" >> out/.config
 echo "CONFIG_KVM_ARM_HOST=y" >> out/.config
