@@ -16,28 +16,6 @@ function compile()
     [ ! -d "gcc64" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc64
     [ ! -d "gcc32" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 
-    # 2. Apply Mandatory Fixes
-    echo "Applying final source patches..."
-    
-    # Touchscreen Firmware Fix
-    mkdir -p include/firmware
-    if [ -f "drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i" ]; then
-        cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
-        sed -i 's|#define FTS_UPGRADE_FW_FILE.*|#define FTS_UPGRADE_FW_FILE "include/firmware/fw_huaxing_v0e.i"|g' drivers/input/touchscreen/ft8756_spi/focaltech_config.h
-    fi
-    
-    # --- KVM UNDEFINED SYMBOL FIX ---
-    echo "Injecting KVM fix into cpu_errata.c..."
-    ERRATA_FILE="arch/arm64/kernel/cpu_errata.c"
-    if ! grep -q "arm64_enable_wa2_handling" "$ERRATA_FILE"; then
-        echo -e "\nvoid arm64_enable_wa2_handling(const struct arm64_cpu_capabilities *cap) { }" >> "$ERRATA_FILE"
-        echo "EXPORT_SYMBOL_GPL(arm64_enable_wa2_handling);" >> "$ERRATA_FILE"
-    fi
-
-    # Scheduler Fix
-    sed -i '9420s/cpumask_bits(&p->cpus_allowed)\[0\]);/cpumask_bits(\&p->cpus_allowed)[0];/g' kernel/sched/fair.c
-    sed -i '11214c\        /* mark_reserved(this_cpu); */' kernel/sched/fair.c
-
     # 3. Kernel Configuration
     make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
     
