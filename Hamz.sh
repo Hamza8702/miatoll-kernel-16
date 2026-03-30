@@ -16,6 +16,56 @@ function compile()
     [ ! -d "gcc64" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc64
     [ ! -d "gcc32" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 
+                # 2. Apply Mandatory Fixes (The Ultimate Fix)
+    echo "Applying surgical source patches..."
+
+    # Fix 1: cpu_errata.c Header & Symbol Fix
+    ERRATA_FILE="arch/arm64/kernel/cpu_errata.c"
+    sed -i '/linux\/arm64_capabilities.h/d' "$ERRATA_FILE"
+    if ! grep -q "arm64_enable_wa2_handling" "$ERRATA_FILE"; then
+        echo -e "\n#include <linux/export.h>\n#include <asm/cpufeature.h>\nvoid arm64_enable_wa2_handling(const struct arm64_cpu_capabilities *cap) { }\nEXPORT_SYMBOL_GPL(arm64_enable_wa2_handling);" >> "$ERRATA_FILE"
+    fi
+
+    # Fix 2: Scheduler Core Missing Definitions
+    # Defining missing NOHZ_BALANCE_KICK and FULL_THROTTLE_BOOST
+    SCHED_CORE="kernel/sched/core.c"
+    SCHED_FAIR="kernel/sched/fair.c"
+    
+    # Injecting NOHZ_BALANCE_KICK into core.c
+    if ! grep -q "NOHZ_BALANCE_KICK" "$SCHED_CORE"; then
+        sed -i '1i #define NOHZ_BALANCE_KICK 1' "$SCHED_CORE"
+    fi
+
+    # Injecting FULL_THROTTLE_BOOST into fair.c
+    if ! grep -q "FULL_THROTTLE_BOOST" "$SCHED_FAIR"; then
+        sed -i '1i #define FULL_THROTTLE_BOOST 2' "$SCHED_FAIR"
+    fi
+
+    # Fix 3: NR_CPUS Tracepoint Error Bypass
+    TRACE_SCHED="include/trace/events/sched.h"
+    sed -i 's/#error "Unsupported NR_CPUS for lb tracepoint."/\/\/#error "Bypassed by Hamza"/g' "$TRACE_SCHED"
+
+    # Fix 4: Scheduler Syntax Fix
+    sed -i 's/cpumask_bits(&p->cpus_allowed)\[0\]);/cpumask_bits(\&p->cpus_allowed)[0];/g' "$SCHED_FAIR"
+    
+    # Fix 5: Touchscreen Firmware Directory
+    mkdir -p include/firmware
+    [ -f "drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i" ] && cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
+
+    # 3. Kernel Configuration
+    make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
+    
+    # KVM & NR_CPUS & Fixes
+    {
+        echo "CONFIG_KVM=y"
+        echo "CONFIG_KVM_ARM_HOST=y"
+        echo "CONFIG_VIRTUALIZATION=y"
+        echo "CONFIG_NR_CPUS=8"
+        echo "CONFIG_KVM_ARM_VGIC_V3=y"
+        echo "CONFIG_KVM_ARM_PMU=y"
+        echo "CONFIG_HARDEN_BRANCH_PREDICTOR=n"
+    } >> out/.config
+
             # 2. Apply Mandatory Fixes (The Ultimate Fix)
     echo "Applying surgical source patches..."
 
