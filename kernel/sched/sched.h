@@ -46,6 +46,9 @@
 #else
 # define SCHED_WARN_ON(x)	({ (void)(x), 0; })
 #endif
+/* Mandatory definitions for KVM and Boost support */
+#define NOHZ_BALANCE_KICK 1
+#define FULL_THROTTLE_BOOST 2
 
 struct rq;
 struct cpuidle_state;
