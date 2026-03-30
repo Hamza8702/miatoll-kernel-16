@@ -16,41 +16,6 @@ function compile()
     [ ! -d "gcc64" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc64
     [ ! -d "gcc32" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 
-               # 2. Apply Mandatory Fixes (The Ultimate Fix)
-    echo "Applying surgical source patches..."
-
-    # Fix 1: cpu_errata.c Header & Symbol Fix
-    ERRATA_FILE="arch/arm64/kernel/cpu_errata.c"
-    sed -i '/linux\/arm64_capabilities.h/d' "$ERRATA_FILE"
-    if ! grep -q "arm64_enable_wa2_handling" "$ERRATA_FILE"; then
-        echo -e "\n#include <linux/export.h>\n#include <asm/cpufeature.h>\nvoid arm64_enable_wa2_handling(const struct arm64_cpu_capabilities *cap) { }\nEXPORT_SYMBOL_GPL(arm64_enable_wa2_handling);" >> "$ERRATA_FILE"
-    fi
-
-    # Fix 2: hugetlbpage.c Syntax Error
-    # Fixing 'ptep' undeclared identifier by changing it to 'pte'
-    HUGE_PAGE="arch/arm64/mm/hugetlbpage.c"
-    if [ -f "$HUGE_PAGE" ]; then
-        sed -i 's/ptep = huge_pmd_share/pte = huge_pmd_share/g' "$HUGE_PAGE"
-    fi
-
-    # Fix 3: NR_CPUS Tracepoint Error Bypass (Global)
-    # This will comment out the error in the header file so all files can compile
-    TRACE_SCHED="include/trace/events/sched.h"
-    if [ -f "$TRACE_SCHED" ]; then
-        sed -i 's/#error "Unsupported NR_CPUS for lb tracepoint."/\/\/#error "Bypassed by Hamza"/g' "$TRACE_SCHED"
-    fi
-
-    # Fix 4: Scheduler Core/Fair Missing Definitions
-    SCHED_CORE="kernel/sched/core.c"
-    SCHED_FAIR="kernel/sched/fair.c"
-    [ -f "$SCHED_CORE" ] && ! grep -q "NOHZ_BALANCE_KICK" "$SCHED_CORE" && sed -i '1i #define NOHZ_BALANCE_KICK 1' "$SCHED_CORE"
-    [ -f "$SCHED_FAIR" ] && ! grep -q "FULL_THROTTLE_BOOST" "$SCHED_FAIR" && sed -i '1i #define FULL_THROTTLE_BOOST 2' "$SCHED_FAIR"
-
-    # Fix 5: Touchscreen Firmware Directory
-    mkdir -p include/firmware
-    [ -f "drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i" ] && cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
-
-    # 3. Kernel Configuration
     make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
     
     # KVM & NR_CPUS & Fixes
