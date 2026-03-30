@@ -39,7 +39,7 @@ function compile()
     sed -i '11214c\        /* mark_reserved(this_cpu); */' kernel/sched/fair.c
 
     # 3. Kernel Configuration
-    make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
+    make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
     
     # KVM / Virtualization Settings
     {
@@ -67,20 +67,23 @@ function compile()
                           KCFLAGS="-Wno-error -Wno-implicit-function-declaration -Wno-declaration-after-statement"
 }
 
-# --- PACKAGING FUNCTION ---
+# --- PACKAGING FUNCTION (Direct Boot Folder) ---
 function zupload()
 {
-    IMAGE=out/arch/arm64/boot/Image.gz
-    if [ ! -f "$IMAGE" ]; then
-        echo "ERROR: Kernel binary not found. Compilation failed at the final stage."
+    BOOT_DIR="out/arch/arm64/boot"
+    
+    if [ ! -d "$BOOT_DIR" ]; then
+        echo "ERROR: Boot directory not found. Compilation failed!"
     else
-        echo "SUCCESS: Kernel compiled! Creating flashable zip..."
-        rm -rf AnyKernel
-        git clone --depth=1 https://github.com/Amritorock/AnyKernel3 -b r5x AnyKernel
-        cp out/arch/arm64/boot/Image.gz AnyKernel/
-        cd AnyKernel
-        zip -r9 "Stormbreaker-miatoll-${TIMESTAMP}.zip" *
-        cd ..
+        echo "SUCCESS: Kernel compiled! Packaging the raw boot files..."
+        
+        # Packaging everything inside out/arch/arm64/boot
+        # This includes Image.gz, dtbo.img, and the dts folder
+        cd "$BOOT_DIR"
+        zip -r9 "../../../../Stormbreaker-miatoll-RAW-${TIMESTAMP}.zip" *
+        cd ../../../..
+        
+        echo "Artifact created: Stormbreaker-miatoll-RAW-${TIMESTAMP}.zip"
     fi
 }
 
