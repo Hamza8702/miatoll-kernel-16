@@ -67,6 +67,13 @@
 #include <linux/bpf.h>
 #include <linux/mount.h>
 #include <linux/userfaultfd_k.h>
+/* Added by Ayse to fix undefined symbols during linking */
+int sched_updown_migrate_handler = 0;
+EXPORT_SYMBOL(sched_updown_migrate_handler);
+
+#include <linux/bpf.h> 
+struct static_key bpf_stats_enabled_key = STATIC_KEY_INIT_FALSE;
+EXPORT_SYMBOL(bpf_stats_enabled_key);
 
 #include <linux/uaccess.h>
 #include <asm/processor.h>
