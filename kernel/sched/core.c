@@ -16,6 +16,8 @@
 #include <linux/init_task.h>
 #include <linux/context_tracking.h>
 #include <linux/rcupdate_wait.h>
+unsigned long nohz_flags = 0;
+EXPORT_SYMBOL(nohz_flags);
 
 #include <linux/blkdev.h>
 #include <linux/kcov.h>
