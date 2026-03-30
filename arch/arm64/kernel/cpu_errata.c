@@ -1201,13 +1201,3 @@ void arm64_enable_wa2_handling(const struct arm64_cpu_capabilities *cap)
 {
 	/* This is a dummy function to satisfy the linker when CONFIG_KVM is enabled */
 }
-#include <linux/arm64_capabilities.h>
-#include <linux/export.h>
-
-/* Fix for KVM Undefined Symbol on Miatoll */
-void arm64_enable_wa2_handling(const struct arm64_cpu_capabilities *cap)
-{
-	/* This is a dummy function to satisfy the linker when CONFIG_KVM is enabled.
-	   It allows the KVM hypervisor to link properly with the kernel. */
-}
-EXPORT_SYMBOL_GPL(arm64_enable_wa2_handling);
