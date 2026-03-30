@@ -28,7 +28,7 @@ function compile()
     sed -i '11214c\        /* mark_reserved(this_cpu); */' kernel/sched/fair.c
 
     # 3. Kernel Configuration
-    make O=out ARCH=arm64 vendor/xiaomi/miatoll_defconfig
+    make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
     
     # KVM / Virtualization
     {
