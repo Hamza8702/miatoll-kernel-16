@@ -1196,3 +1196,8 @@ void __init spectre_bhb_patch_loop_iter(struct alt_instr *alt,
 					 AARCH64_INSN_MOVEWIDE_ZERO);
 	*updptr++ = cpu_to_le32(insn);
 }
+/* Added to fix undefined symbol for KVM tests */
+void arm64_enable_wa2_handling(const struct arm64_cpu_capabilities *cap)
+{
+	/* This is a dummy function to satisfy the linker when CONFIG_KVM is enabled */
+}
