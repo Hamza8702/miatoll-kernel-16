@@ -16,55 +16,48 @@ function compile()
     [ ! -d "gcc64" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc64
     [ ! -d "gcc32" ] && git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
 
-        # 2. Apply Mandatory Fixes
-    echo "Applying final source patches..."
-    
-    # Touchscreen Firmware Fix
-    mkdir -p include/firmware
-    if [ -f "drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i" ]; then
-        cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
-        sed -i 's|#define FTS_UPGRADE_FW_FILE.*|#define FTS_UPGRADE_FW_FILE "include/firmware/fw_huaxing_v0e.i"|g' drivers/input/touchscreen/ft8756_spi/focaltech_config.h
-    fi
-    
-    # --- KVM FIX (Updated for 4.14/4.19) ---
-    echo "Injecting KVM fix into cpu_errata.c..."
+                # 2. Apply Mandatory Fixes (The Ultimate Fix)
+    echo "Applying surgical source patches..."
+
+    # Fix 1: cpu_errata.c Header & Symbol Fix
+    # Cleaning up old/wrong headers and adding the correct one for KVM
     ERRATA_FILE="arch/arm64/kernel/cpu_errata.c"
+    sed -i '/linux\/arm64_capabilities.h/d' "$ERRATA_FILE"
     if ! grep -q "arm64_enable_wa2_handling" "$ERRATA_FILE"; then
-        # We use asm/cpufeature.h instead of linux/arm64_capabilities.h
         echo -e "\n#include <linux/export.h>\n#include <asm/cpufeature.h>\nvoid arm64_enable_wa2_handling(const struct arm64_cpu_capabilities *cap) { }\nEXPORT_SYMBOL_GPL(arm64_enable_wa2_handling);" >> "$ERRATA_FILE"
     fi
 
-    # Scheduler Fix
-    sed -i '9420s/cpumask_bits(&p->cpus_allowed)\[0\]);/cpumask_bits(\&p->cpus_allowed)[0];/g' kernel/sched/fair.c
-    sed -i '11214c\        /* mark_reserved(this_cpu); */' kernel/sched/fair.c
+    # Fix 2: FULL_THROTTLE_BOOST Missing Definition
+    # Manually defining the boost level to fix 'undeclared identifier' in scheduler
+    SCHED_FAIR="kernel/sched/fair.c"
+    if ! grep -q "FULL_THROTTLE_BOOST" "$SCHED_FAIR"; then
+        sed -i '1i #define FULL_THROTTLE_BOOST 2' "$SCHED_FAIR"
+    fi
+
+    # Fix 3: Scheduler Syntax Fix
+    # Fixing potential sed errors from previous attempts
+    sed -i 's/cpumask_bits(&p->cpus_allowed)\[0\]);/cpumask_bits(\&p->cpus_allowed)[0];/g' "$SCHED_FAIR"
+    
+    # Fix 4: Touchscreen Firmware Directory
+    mkdir -p include/firmware
+    [ -f "drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i" ] && cp drivers/input/touchscreen/ft8756_spi/include/firmware/fw_huaxing_v0e.i include/firmware/
 
     # 3. Kernel Configuration
     make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
     
-    # KVM & NR_CPUS Fix
+    # KVM & NR_CPUS & Spectre Fix
     {
         echo "CONFIG_KVM=y"
         echo "CONFIG_KVM_ARM_HOST=y"
         echo "CONFIG_VIRTUALIZATION=y"
-        echo "CONFIG_NR_CPUS=8" # Fixing the lb tracepoint error
+        echo "CONFIG_NR_CPUS=8"
         echo "CONFIG_KVM_ARM_VGIC_V3=y"
         echo "CONFIG_KVM_ARM_PMU=y"
+        # Disabling branch predictor hardening to avoid 'hyp_vecs' errors in KVM mode
+        echo "CONFIG_HARDEN_BRANCH_PREDICTOR=n" 
     } >> out/.config
 
 
-    # 3. Kernel Configuration
-    make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
-    
-    # KVM / Virtualization Settings
-    {
-        echo "CONFIG_KVM=y"
-        echo "CONFIG_KVM_ARM_HOST=y"
-        echo "CONFIG_VIRTUALIZATION=y"
-        echo "CONFIG_KVM_ARM_VGIC_V3=y"
-        echo "CONFIG_KVM_ARM_PMU=y"
-        echo "CONFIG_VHOST_NET=y"
-        echo "CONFIG_VIRTIO_PCI=y"
-    } >> out/.config
     
     make O=out ARCH=arm64 olddefconfig
 
