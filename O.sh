@@ -41,17 +41,6 @@ function compile()
     # 3. Kernel Configuration
     make O=out ARCH=arm64 vendor/xiaomi/miatoll.config
     
-    # KVM / Virtualization Settings
-    {
-        echo "CONFIG_KVM=y"
-        echo "CONFIG_KVM_ARM_HOST=y"
-        echo "CONFIG_VIRTUALIZATION=y"
-        echo "CONFIG_KVM_ARM_VGIC_V3=y"
-        echo "CONFIG_KVM_ARM_PMU=y"
-        echo "CONFIG_VHOST_NET=y"
-        echo "CONFIG_VIRTIO_PCI=y"
-    } >> out/.config
-    
     make O=out ARCH=arm64 olddefconfig
 
     # 4. Final Build Attempt
