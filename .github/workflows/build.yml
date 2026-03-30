@@ -19,8 +19,8 @@ jobs:
 
       - name: Run Build Script
         run: |
-          chmod +x O.sh
-          ./O.sh
+          chmod +x build-kvm.sh
+          ./build-kvm.sh
 
       - name: Upload Flashable Kernel Zip
         uses: actions/upload-artifact@v4
