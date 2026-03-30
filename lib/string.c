@@ -458,6 +458,10 @@ EXPORT_SYMBOL(strchrnul);
  * @s: The string to be searched
  * @c: The character to search for
  */
+
+/* EFI Stub link hatasını çözmek için Ayşe tarafından eklendi */
+void *__efistub_strrchr(const char *s, int c) __attribute__((alias("strrchr")));
+
 char *strrchr(const char *s, int c)
 {
 	const char *last = NULL;
@@ -468,6 +472,7 @@ char *strrchr(const char *s, int c)
 	return (char *)last;
 }
 EXPORT_SYMBOL(strrchr);
+
 #endif
 
 #ifndef __HAVE_ARCH_STRNCHR
