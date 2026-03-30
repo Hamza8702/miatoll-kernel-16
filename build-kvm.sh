@@ -64,6 +64,7 @@ function compile()
                           LD=ld.lld \
                           CONFIG_NO_ERROR_ON_MISMATCH=y \
                           KCFLAGS="-Wno-error -Wno-implicit-function-declaration -Wno-declaration-after-statement" \
+                          
 }
 
 # --- PACKAGING FUNCTION (Direct Boot Folder) ---
